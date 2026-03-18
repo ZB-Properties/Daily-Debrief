@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO Test</title>
+    <!-- Use EXACT version 4.6.2 -->
+    <script src="https://cdn.socket.io/4.6.2/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Socket.IO Test - v4.6.2</h1>
+    <div id="status">Testing...</div>
+    
+    <script>
+        const status = document.getElementById('status');
+        
+        console.log('Testing Socket.IO version:', io.version);
+        status.innerHTML = `Version: ${io.version}<br>`;
+        
+        // Force websocket only
+        const socket = io('http://localhost:7900', {
+            transports: ['websocket'],  // ONLY websocket
+            timeout: 10000,
+            reconnection: false  // Disable reconnect for testing
+        });
+        
+        socket.on('connect', () => {
+            console.log('✅ CONNECTED!', socket.id);
+            status.innerHTML += `✅ Connected! ID: ${socket.id}<br>`;
+        });
+        
+        socket.on('disconnect', (reason) => {
+            console.log('🔴 DISCONNECTED:', reason);
+            status.innerHTML += `🔴 Disconnected: ${reason}<br>`;
+        });
+        
+        socket.on('connect_error', (error) => {
+            console.error('❌ ERROR:', error.message);
+            status.innerHTML += `❌ Error: ${error.message}<br>`;
+        });
+    </script>
+</body>
+</html>

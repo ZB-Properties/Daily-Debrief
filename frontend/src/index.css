@@ -1,0 +1,28 @@
+/* Add to your index.css temporarily */
+
+/* Your custom styles below */
+* {
+  outline: 1px solid red !important;
+}
+
+body {
+  background-color: #f0f0f0 !important;
+  color: black !important;
+}
+
+#root {
+  min-height: 100vh;
+  background-color: white !important;
+}
+
+/* Make all text visible */
+h1, h2, h3, p, span, div {
+  color: black !important;
+  background-color: transparent !important;
+}
+
+/* Fix dark mode issues */
+.dark * {
+  color: white !important;
+  background-color: #1a1a1a !important;
+}
