@@ -8,7 +8,7 @@ import {
 import Avatar from '../common/Avatar';
 import { useAuth } from '../../context/AuthContext';
 import { format } from 'date-fns';
-import ImageLightBox from './ImageLightbox';
+//import ImageLightBox from './ImageLightbox';
 import { highlightText } from '../../utils/search';
 import toast from 'react-hot-toast';
 
@@ -307,12 +307,13 @@ const MessageBubble = ({
             </div>
             
             {/* Image Lightbox */}
-            <ImageLightBox
-              isOpen={lightboxOpen}
-              onClose={() => setLightboxOpen(false)}
-              imageUrl={message.fileUrl || message.content}
-              fileName={message.fileName || 'image.jpg'}
-            />
+           {// <ImageLightBox //
+              //isOpen={lightboxOpen}
+              //onClose={() => setLightboxOpen(false)}
+              //imageUrl={message.fileUrl || message.content}
+              //fileName={message.fileName || 'image.jpg'}
+            // /> //
+           }
           </>
         );
       
