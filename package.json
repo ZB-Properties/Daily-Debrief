@@ -1,0 +1,40 @@
+{
+  "name": "daily-debrief",
+  "version": "1.0.0",
+  "description": "A REAL-TIME CHAT APPLICATION using Node.js and React vite",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm start",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && npm start"
+  },
+  "keywords": [
+    "chat",
+    "real-time",
+    "socket.io",
+    "react",
+    "node"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@emoji-mart/data": "^1.2.1",
+    "@emoji-mart/react": "^1.1.1",
+    "@tanstack/react-query": "^5.90.20",
+    "react-helmet-async": "^2.0.5",
+    "react-hook-form": "^7.71.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.13",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.4.24",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
+    "concurrently": "^8.2.2"
+  }
+}
