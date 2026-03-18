@@ -24,7 +24,7 @@ const { sanitizeInput } = require('./src/middleware/validation');
 const authRoutes = require('./src/routes/auth');
 const userRoutes = require('./src/routes/users');
 const chatRoutes = require('./src/routes/chats');
-const messageRoutes = require('./src/routes/messages');
+const messageRoutes =('./src/routes/messages');
 const uploadRoutes = require('./src/routes/upload');
 const callRoutes = require('./src/routes/calls');
 const notificationRoutes = require('./src/routes/notifications');
@@ -40,7 +40,10 @@ const server = http.createServer(app);
 // ========== OPTIMIZED SOCKET.IO CONFIGURATION ==========
 const io = socketIo(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:7300',
+    origin: [
+      process.env.FRONTEND_URL || 'http://localhost:7300',
+      'https://dailydebrief.netlify.app' // ADDED YOUR NETLIFY URL
+    ],
     credentials: true,
     methods: ['GET', 'POST']
   },
@@ -62,7 +65,10 @@ const io = socketIo(server, {
 });
 
 console.log('✅ Socket.IO server initialized:', {
-  origin: process.env.FRONTEND_URL || 'http://localhost:7300',
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:7300',
+    'https://dailydebrief.netlify.app'
+  ],
   transports: ['websocket', 'polling'],
   pingTimeout: 60000,
   pingInterval: 25000
@@ -77,13 +83,16 @@ connectRedis().catch(err => console.error('Redis connection failed:', err));
 
 configureCloudinary();
 
-// ========== CORS CONFIGURATION ==========
+// ========== CORS CONFIGURATION WITH NETLIFY URL ==========
 const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = [
       'http://localhost:7300',
-      'http://127.0.0.1:7300'
+      'http://127.0.0.1:7300',
+      'https://dailydebrief.netlify.app', // YOUR NETLIFY URL
+      // Allow requests with no origin (like mobile apps, curl, etc)
     ];
+    
     if (!origin) return callback(null, true);
     
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -113,7 +122,16 @@ app.options('/*path', cors(corsOptions));
 
 
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:7300');
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'http://localhost:7300',
+    'https://dailydebrief.netlify.app' // YOUR NETLIFY URL
+  ];
+  
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
@@ -141,7 +159,12 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
-      connectSrc: ["'self'", process.env.FRONTEND_URL, "https://res.cloudinary.com"],
+      connectSrc: [
+        "'self'", 
+        process.env.FRONTEND_URL, 
+        "https://dailydebrief.netlify.app", // YOUR NETLIFY URL
+        "https://res.cloudinary.com"
+      ],
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
@@ -288,8 +311,9 @@ server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'production'}`);
   console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:7300'}`);
+  console.log(`🌐 Netlify Frontend: https://dailydebrief.netlify.app`);
   console.log(`📡 Socket.IO listening on ws://localhost:${PORT}`);
-  console.log(`⚡ CORS enabled for: http://localhost:7300`);
+  console.log(`⚡ CORS enabled for: http://localhost:7300, https://dailydebrief.netlify.app`);
   console.log('🚀 ==================================\n');
 });
 
