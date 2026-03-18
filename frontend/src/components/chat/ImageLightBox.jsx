@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
 import { FiX, FiChevronLeft, FiChevronRight, FiDownload, FiMaximize } from 'react-icons/fi';
 
-const ImageLightbox = ({ isOpen, onClose, imageUrl, fileName, onNext, onPrev, hasNext, hasPrev }) => {
+const ImageLightBox = ({ isOpen, onClose, imageUrl, fileName, onNext, onPrev, hasNext, hasPrev }) => {
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === 'Escape') onClose();
     };
-    
+     
     if (isOpen) {
       document.addEventListener('keydown', handleEsc);
       document.body.style.overflow = 'hidden';
@@ -100,4 +100,4 @@ const ImageLightbox = ({ isOpen, onClose, imageUrl, fileName, onNext, onPrev, ha
   );
 };
 
-export default ImageLightbox;
+export default ImageLightBox;
