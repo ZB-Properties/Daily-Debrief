@@ -30,13 +30,11 @@ const register = asyncHandler(async (req, res) => {
   }
 
   try {
-    // MANUALLY HASH THE PASSWORD
-    console.log('🔐 Hashing password...');
+    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    console.log('✅ Password hashed successfully');
 
-    // Create user with hashed password
+    // Create user
     const user = await User.create({
       name,
       email,
@@ -44,19 +42,25 @@ const register = asyncHandler(async (req, res) => {
       isEmailVerified: false
     });
 
-    console.log('✅ User created with ID:', user._id);
-
-    // Generate email verification token
+    // Generate verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
     user.emailVerificationToken = crypto
       .createHash('sha256')
       .update(verificationToken)
       .digest('hex');
-    user.emailVerificationExpire = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    user.emailVerificationExpire = Date.now() + 24 * 60 * 60 * 1000;
     await user.save();
 
-    // Send verification email
-    await emailService.sendVerificationEmail(user, verificationToken);
+    // Try to send email but DON'T block registration if it fails
+    try {
+      const emailResult = await emailService.sendVerificationEmail(user, verificationToken);
+      if (!emailResult.success) {
+        console.log('⚠️ Email sending failed but user was created:', emailResult.error);
+      }
+    } catch (emailError) {
+      console.log('⚠️ Email error (non-blocking):', emailError.message);
+      // Continue with registration
+    }
 
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user._id);
@@ -70,14 +74,14 @@ const register = asyncHandler(async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+      maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
     // Remove sensitive data
@@ -87,9 +91,14 @@ const register = asyncHandler(async (req, res) => {
 
     logger.info(`New user registered: ${user.email}`);
 
+    // Send response with appropriate message
+    const message = emailResult?.success 
+      ? 'Registration successful. Please check your email to verify your account.'
+      : 'Registration successful. However, the verification email could not be sent. Please contact support or try again later.';
+
     res.status(201).json({
       success: true,
-      message: 'Registration successful. Please check your email to verify your account.',
+      message,
       data: {
         user,
         tokens: {
@@ -106,20 +115,6 @@ const register = asyncHandler(async (req, res) => {
       error: error.message || 'Registration failed'
     });
   }
-
-  // In your register function, right after creating the user
-console.log('📧 Attempting to send verification email to:', user.email);
-console.log('📧 Verification token:', verificationToken);
-console.log('📧 FRONTEND_URL:', process.env.FRONTEND_URL);
-
-const emailResult = await emailService.sendVerificationEmail(user, verificationToken);
-console.log('📧 Email send result:', emailResult);
-
-if (!emailResult.success) {
-  console.error('❌ Email sending failed:', emailResult.error);
-  // Don't block registration, but log the error
-}
-
 });
 
 
