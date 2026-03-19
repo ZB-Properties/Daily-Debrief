@@ -31,21 +31,20 @@ const register = asyncHandler(async (req, res) => {
     });
   }
 
-  // Define emailResult outside try block
-  let emailResult = { success: false, error: 'Email not sent' };
-
   try {
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create user
+    // Create and save user FIRST - before any email attempts
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
       isEmailVerified: false
     });
+
+    console.log('✅ User saved to database with ID:', user._id);
 
     // Generate verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -54,31 +53,12 @@ const register = asyncHandler(async (req, res) => {
       .update(verificationToken)
       .digest('hex');
     user.emailVerificationExpire = Date.now() + 24 * 60 * 60 * 1000;
+    
+    // Save the token
     await user.save();
+    console.log('✅ Verification token saved');
 
-    // Try to send email but DON'T block registration
-    try {
-      // Initialize Resend
-      resendService.initialize();
-      
-      emailResult = await resendService.sendVerificationEmail(user, verificationToken);
-      
-      if (!emailResult.success) {
-        console.log('⚠️ Email sending failed but user was created:', emailResult.error);
-      } else {
-        console.log('✅ Verification email process completed');
-      }
-    } catch (emailError) {
-      console.log('⚠️ Email error (non-blocking):', emailError.message);
-      emailResult = { 
-        success: true, // Force success so registration continues
-        verificationUrl: `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`,
-        message: 'Registration successful! Click the link below to verify your account.',
-        error: emailError.message 
-      };
-    }
-
-    // Generate tokens
+    // Generate tokens for immediate login (optional)
     const { accessToken, refreshToken } = generateTokens(user._id);
 
     // Save refresh token
@@ -100,6 +80,24 @@ const register = asyncHandler(async (req, res) => {
       maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
+    // NOW try to send email (but don't let it affect the response)
+    let verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
+    let emailMessage = 'Registration successful! Please check your email to verify your account.';
+    
+    try {
+      resendService.initialize();
+      const emailResult = await resendService.sendVerificationEmail(user, verificationToken);
+      
+      if (emailResult.success && emailResult.verificationUrl) {
+        verificationUrl = emailResult.verificationUrl;
+      }
+      
+      console.log('✅ Email process completed');
+    } catch (emailError) {
+      console.log('⚠️ Email error (non-blocking):', emailError.message);
+      // Email failed but user is already saved - that's OK
+    }
+
     // Remove sensitive data
     user.password = undefined;
     user.refreshToken = undefined;
@@ -107,11 +105,11 @@ const register = asyncHandler(async (req, res) => {
 
     logger.info(`New user registered: ${user.email}`);
 
-    // Send response with verification URL
+    // Send success response - user is definitely saved!
     res.status(201).json({
       success: true,
-      message: emailResult?.message || 'Registration successful',
-      verificationUrl: emailResult?.verificationUrl, // Include the link!
+      message: emailMessage,
+      verificationUrl: verificationUrl,
       data: {
         user,
         tokens: {
