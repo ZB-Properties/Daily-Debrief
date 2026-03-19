@@ -4,10 +4,11 @@ const { generateTokens, verifyToken } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
 const { ERROR_MESSAGES, SUCCESS_MESSAGES } = require('../config/constants');
 const { logger } = require('../utils/logger');
-const emailService = require('../services/emailService');
+const resendService = require('../services/resendService'); // CHANGED: from emailService to resendService
 const crypto = require('crypto');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
+ 
 
 /**
  * @desc    Register new user
@@ -28,6 +29,9 @@ const register = asyncHandler(async (req, res) => {
       error: ERROR_MESSAGES.USER.EXISTS
     });
   }
+
+  // Define emailResult outside try block
+  let emailResult = { success: false, error: 'Email not sent' };
 
   try {
     // Hash password
@@ -51,15 +55,26 @@ const register = asyncHandler(async (req, res) => {
     user.emailVerificationExpire = Date.now() + 24 * 60 * 60 * 1000;
     await user.save();
 
-    // Try to send email but DON'T block registration if it fails
+    // Try to send email but DON'T block registration
     try {
-      const emailResult = await emailService.sendVerificationEmail(user, verificationToken);
+      // Initialize Resend
+      resendService.initialize();
+      
+      emailResult = await resendService.sendVerificationEmail(user, verificationToken);
+      
       if (!emailResult.success) {
         console.log('⚠️ Email sending failed but user was created:', emailResult.error);
+      } else {
+        console.log('✅ Verification email process completed');
       }
     } catch (emailError) {
       console.log('⚠️ Email error (non-blocking):', emailError.message);
-      // Continue with registration
+      emailResult = { 
+        success: true, // Force success so registration continues
+        verificationUrl: `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`,
+        message: 'Registration successful! Click the link below to verify your account.',
+        error: emailError.message 
+      };
     }
 
     // Generate tokens
@@ -91,14 +106,11 @@ const register = asyncHandler(async (req, res) => {
 
     logger.info(`New user registered: ${user.email}`);
 
-    // Send response with appropriate message
-    const message = emailResult?.success 
-      ? 'Registration successful. Please check your email to verify your account.'
-      : 'Registration successful. However, the verification email could not be sent. Please contact support or try again later.';
-
+    // Send response with verification URL
     res.status(201).json({
       success: true,
-      message,
+      message: emailResult?.message || 'Registration successful',
+      verificationUrl: emailResult?.verificationUrl, // Include the link!
       data: {
         user,
         tokens: {
@@ -116,7 +128,6 @@ const register = asyncHandler(async (req, res) => {
     });
   }
 });
-
 
 /**
  * @desc    Login user
@@ -239,7 +250,6 @@ const login = asyncHandler(async (req, res) => {
     }
   });
 });
-
 
 /**
  * @desc    Refresh access token
@@ -463,10 +473,15 @@ const forgotPassword = asyncHandler(async (req, res) => {
   user.resetPasswordExpire = Date.now() + 3600000; // 1 hour
   await user.save();
 
-  // Send password reset email
-  await emailService.sendPasswordResetEmail(user, resetToken);
-
-  logger.info(`Password reset requested for: ${user.email}`);
+  // Send password reset email - CHANGED to resendService
+  try {
+    resendService.initialize();
+    await resendService.sendPasswordResetEmail(user, resetToken);
+    logger.info(`Password reset requested for: ${user.email}`);
+  } catch (emailError) {
+    console.log('⚠️ Password reset email error:', emailError.message);
+    // Don't block, but log the error
+  }
 
   res.json({
     success: true,
@@ -552,8 +567,17 @@ const sendVerificationEmail = asyncHandler(async (req, res) => {
   user.emailVerificationExpire = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
   await user.save();
 
-  // Send verification email
-  await emailService.sendVerificationEmail(user, verificationToken);
+  // Send verification email - CHANGED to resendService
+  try {
+    resendService.initialize();
+    await resendService.sendVerificationEmail(user, verificationToken);
+  } catch (emailError) {
+    console.log('⚠️ Verification email error:', emailError.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to send verification email'
+    });
+  }
 
   res.json({
     success: true,
@@ -694,8 +718,14 @@ const verifyAndEnable2FA = asyncHandler(async (req, res) => {
   }));
   await user.save();
 
-  // Send backup codes via email
-  await emailService.send2FABackupCodes(user, backupCodes);
+  // Send backup codes via email - CHANGED to resendService
+  try {
+    resendService.initialize();
+    await resendService.send2FABackupCodes(user, backupCodes);
+  } catch (emailError) {
+    console.log('⚠️ 2FA backup codes email error:', emailError.message);
+    // Don't block, but log the error
+  }
 
   res.json({
     success: true,

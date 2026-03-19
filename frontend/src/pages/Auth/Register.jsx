@@ -3,12 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { FiMail, FiLock, FiUser, FiAlertCircle } from 'react-icons/fi';
+import { FiMail, FiLock, FiUser, FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/common/Button';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import '../../styles/globals.css';
+
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -29,6 +30,7 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
+  const [verificationLink, setVerificationLink] = useState(''); // NEW STATE
   
   const { register: registerUser, error: authError } = useAuth();
   const navigate = useNavigate();
@@ -67,8 +69,9 @@ const Register = () => {
       
       if (response.data.success) {
         setRegisteredEmail(data.email);
+        setVerificationLink(response.data.verificationUrl); // SAVE THE LINK
         setRegistrationSuccess(true);
-        toast.success('Registration successful! Please check your email to verify your account.');
+        toast.success('Account created successfully!');
       }
     } catch (err) {
       const errorMsg = err.response?.data?.error || 'Registration failed. Please try again.';
@@ -95,12 +98,12 @@ const Register = () => {
           <div className="bg-foreground dark:bg-red-400 rounded-2xl shadow-xl p-8">
             <div className="text-center space-y-6">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full">
-                <FiMail className="w-10 h-10 text-green-600 dark:text-green-400" />
+                <FiCheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
               </div>
               
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                  Check Your Inbox
+                  Account Created Successfully!
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400">
                   We've sent a verification email to:
@@ -110,14 +113,39 @@ const Register = () => {
                 </p>
               </div>
               
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-left">
+              {/* DIRECT VERIFICATION LINK SECTION - NEW */}
+              {verificationLink && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                  <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-3 flex items-center">
+                    <FiMail className="w-4 h-4 mr-2" />
+                    🔗 Click to Verify Instantly
+                  </h4>
+                  <a 
+                    href={verificationLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-center font-medium mb-3"
+                  >
+                    Verify Email Now
+                  </a>
+                  <p className="text-xs text-blue-700 dark:text-blue-400 break-all">
+                    Link: {verificationLink}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Click the button above or copy the link to verify your email. 
+                    You can also check your email inbox.
+                  </p>
+                </div>
+              )}
+              
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-left mt-4">
                 <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2">
                   📨 Next Steps:
                 </h4>
                 <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
-                  <li>1. Open the email we just sent you</li>
-                  <li>2. Click the verification link in the email</li>
-                  <li>3. Return here and login to start chatting</li>
+                  <li>1. Click the blue button above to verify instantly</li>
+                  <li>2. Or check your email inbox for the verification link</li>
+                  <li>3. After verification, login to start chatting</li>
                 </ul>
               </div>
               
