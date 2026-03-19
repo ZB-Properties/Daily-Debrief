@@ -11,16 +11,26 @@ const VerifyEmail = () => {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    verifyEmail();
+    if (token) {
+      verifyEmail();
+    } else {
+      setStatus('error');
+      setMessage('No verification token provided');
+    }
   }, [token]);
 
   const verifyEmail = async () => {
     try {
+      console.log('🔐 Verifying email with token:', token);
+      
+      // This endpoint should be public, no auth header needed
       const response = await api.get(`/auth/verify-email/${token}`);
+      
+      console.log('✅ Verification response:', response.data);
       
       if (response.data.success) {
         setStatus('success');
-        setMessage('Your email has been verified successfully!');
+        setMessage(response.data.message || 'Email verified successfully!');
         toast.success('Email verified successfully');
         
         // Redirect to login after 3 seconds
@@ -32,16 +42,30 @@ const VerifyEmail = () => {
         setMessage(response.data.error || 'Verification failed');
       }
     } catch (error) {
-      console.error('Verification error:', error);
-      setStatus('error');
-      setMessage(error.response?.data?.error || 'Invalid or expired verification link');
+      console.error('❌ Verification error:', error);
+      
+      // Handle 401/403 errors specifically
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        setStatus('error');
+        setMessage('Authentication error. Please login and try again.');
+      } else {
+        setStatus('error');
+        setMessage(error.response?.data?.error || 'Invalid or expired verification link');
+      }
     }
   };
 
   const handleResendVerification = async () => {
-    // This would need the email from the user or context
-    toast.error('Please login to resend verification email');
-    navigate('/login');
+    // Get email from localStorage or prompt user
+    const email = prompt('Please enter your email address to resend verification:');
+    if (!email) return;
+    
+    try {
+      await api.post('/auth/send-verification', { email });
+      toast.success('Verification email resent! Please check your inbox.');
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to resend verification email');
+    }
   };
 
   return (
@@ -109,7 +133,7 @@ const VerifyEmail = () => {
                 to="/login"
                 className="inline-block w-full px-6 py-3 bg-gradient-to-r from-red-500 to-blue-800 text-white font-semibold rounded-lg hover:from-red-600 hover:to-blue-900 transition-all"
               >
-                Go to Login
+                Go to Login Now
               </Link>
             </div>
           )}

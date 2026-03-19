@@ -125,7 +125,7 @@ router.put('/reset-password/:resetToken', validate(resetPasswordValidation), res
 
 // Email verification routes
 router.post('/send-verification', authMiddleware, sendVerificationEmail);
-router.get('/verify-email/:token', authMiddleware, verifyEmail);
+router.get('/verify-email/:token', verifyEmail);
 
 // 2FA routes
 router.get('/2fa/status', authMiddleware, get2FAStatus);

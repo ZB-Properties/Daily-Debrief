@@ -589,32 +589,42 @@ const sendVerificationEmail = asyncHandler(async (req, res) => {
 /**
  * @desc    Verify email
  * @route   GET /api/auth/verify-email/:token
- * @access  Public
+ * @access  Public (NO AUTH REQUIRED!)
  */
 const verifyEmail = asyncHandler(async (req, res) => {
   const { token } = req.params;
 
+  console.log('🔐 Verifying email with token:', token);
+
+  // Hash the token to compare with stored hash
   const verificationToken = crypto
     .createHash('sha256')
     .update(token)
     .digest('hex');
 
+  // Find user with this token and not expired
   const user = await User.findOne({
     emailVerificationToken: verificationToken,
     emailVerificationExpire: { $gt: Date.now() }
   });
 
   if (!user) {
+    console.log('❌ Invalid or expired token');
     return res.status(400).json({
       success: false,
       error: 'Invalid or expired verification token'
     });
   }
 
+  console.log('✅ User found, verifying email for:', user.email);
+  
+  // Mark email as verified
   user.isEmailVerified = true;
   user.emailVerificationToken = undefined;
   user.emailVerificationExpire = undefined;
   await user.save();
+
+  console.log('✅ Email verified successfully');
 
   res.json({
     success: true,
