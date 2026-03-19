@@ -1,7 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import authService from '../services/auth';
 
 const AuthContext = createContext();
 
@@ -17,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [authLoading, setAuthLoading] = useState(false);
   const navigate = useNavigate();
 
   // Check if user is logged in on mount
@@ -34,11 +34,12 @@ export const AuthProvider = ({ children }) => {
 
       console.log('🔍 Checking auth with token...');
       
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
       const response = await api.get('/auth/me');
       console.log('🔍 Auth check response:', response.data);
       
       if (response.data.success) {
-        // Handle different response structures
         const userData = response.data.data?.user || response.data.user || response.data;
         console.log('✅ User authenticated:', userData);
         setUser(userData);
@@ -59,147 +60,110 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     console.log('🔐 login - Attempting login for:', email);
     setError(null);
+    setAuthLoading(true);
     
     try {
-      const response = await authService.login(email, password);
-      console.log('🔐 login - Full response:', response);
-      console.log('🔐 login - Response data:', response.data);
+      // Send ONLY email and password - no extra data
+      const response = await api.post('/auth/login', { 
+        email, 
+        password 
+      });
+      
+      console.log('✅ Login response:', response.data);
 
-      if (response.data.success) {
-        // LOG THE ENTIRE RESPONSE STRUCTURE
-        console.log('🔐 SUCCESS - Response structure:', {
-          hasData: !!response.data.data,
-          hasUser: !!response.data.user,
-          dataKeys: response.data.data ? Object.keys(response.data.data) : [],
-          responseKeys: Object.keys(response.data)
-        });
-
-        // Extract user data - handle multiple possible structures
-        let userData = null;
-        let accessToken = null;
-        let refreshToken = null;
-
-        // Structure 1: { data: { user: {...}, tokens: {...} } }
-        if (response.data.data?.user) {
-          userData = response.data.data.user;
-          accessToken = response.data.data.tokens?.accessToken;
-          refreshToken = response.data.data.tokens?.refreshToken;
-          console.log('🔐 Structure 1: data.user');
-        }
-        // Structure 2: { user: {...}, tokens: {...} }
-        else if (response.data.user) {
-          userData = response.data.user;
-          accessToken = response.data.tokens?.accessToken;
-          refreshToken = response.data.tokens?.refreshToken;
-          console.log('🔐 Structure 2: response.user');
-        }
-        // Structure 3: { data: {...} } where data is the user object
-        else if (response.data.data && !response.data.data.user) {
-          userData = response.data.data;
-          accessToken = response.data.data.accessToken || response.data.token;
-          refreshToken = response.data.data.refreshToken;
-          console.log('🔐 Structure 3: data is user');
-        }
-        // Structure 4: response itself is user data
-        else {
-          userData = response.data;
-          accessToken = response.data.accessToken || response.data.token;
-          refreshToken = response.data.refreshToken;
-          console.log('🔐 Structure 4: response is user');
-        }
-
-        if (!userData) {
-          console.error('❌ Could not extract user data from response');
-          setError('Invalid response format');
-          return { success: false, error: 'Invalid response format' };
-        }
-
-        // Normalize user data
-        const normalizedUser = {
-          _id: userData._id || userData.id,
-          id: userData._id || userData.id,
-          name: userData.name || userData.username || 'User',
-          email: userData.email,
-          profileImage: userData.profileImage || userData.avatar || '',
-          status: userData.status || 'offline',
-          bio: userData.bio || "Hey there! I'm using Daily-Debrief",
-          lastSeen: userData.lastSeen || new Date()
+      // Check for 2FA requirement
+      if (response.data.requires2FA) {
+        setAuthLoading(false);
+        return { 
+          requires2FA: true, 
+          userId: response.data.userId 
         };
-
-        console.log('🔐 login - Normalized user:', normalizedUser);
-
-        // Store tokens - handle multiple possible locations
-        const finalAccessToken = accessToken || response.data.data?.accessToken || response.data.accessToken;
-        const finalRefreshToken = refreshToken || response.data.data?.refreshToken || response.data.refreshToken;
-        
-        if (finalAccessToken) {
-          localStorage.setItem('token', finalAccessToken);
-          console.log('🔐 Token stored');
-        } else {
-          console.warn('⚠️ No access token found in response');
-        }
-        
-        if (finalRefreshToken) {
-          localStorage.setItem('refreshToken', finalRefreshToken);
-        }
-        
-        // Set axios header
-        if (finalAccessToken) {
-          api.defaults.headers.common['Authorization'] = `Bearer ${finalAccessToken}`;
-        }
-        
-        setUser(normalizedUser);
-        console.log('🔐 login - Success, navigating to /chats');
-        navigate('/chats');
-        return { success: true, data: normalizedUser };
-      } else {
-        console.error('❌ Login failed - server returned success: false');
-        setError(response.data.error || 'Login failed');
-        return { success: false, error: response.data.error };
       }
-    } catch (err) {
-      console.error('🔐 login - Error object:', err);
-      console.error('🔐 login - Error response:', err.response?.data);
-      console.error('🔐 login - Error status:', err.response?.status);
       
-      const errorMsg = err.response?.data?.error || err.message || 'Login failed. Please try again.';
-      console.error('🔐 login - Error message:', errorMsg);
-      setError(errorMsg);
-      return { success: false, error: errorMsg };
-    }
-  };
+      // Check for email verification requirement
+      if (response.data.requiresVerification) {
+        setAuthLoading(false);
+        return { 
+          requiresVerification: true, 
+          email: response.data.email 
+        };
+      }
 
-  const register = async (userData) => {
-    try {
-      setError(null);
-      const response = await authService.register(userData);
-      console.log('📝 Register response:', response.data);
-      
+      // Handle successful login
       if (response.data.success) {
-        // Handle different response structures for registration
-        let user = null;
-        let tokens = null;
+        const { user: userData, tokens } = response.data.data;
         
-        if (response.data.data?.user) {
-          user = response.data.data.user;
-          tokens = response.data.data.tokens;
-        } else if (response.data.user) {
-          user = response.data.user;
-          tokens = response.data.tokens;
-        } else {
-          user = response.data;
-        }
+        console.log('✅ Login successful! User:', userData);
         
         // Store tokens
         if (tokens?.accessToken) {
           localStorage.setItem('token', tokens.accessToken);
-          localStorage.setItem('refreshToken', tokens.refreshToken);
           api.defaults.headers.common['Authorization'] = `Bearer ${tokens.accessToken}`;
         }
         
-        setUser(user);
+        if (tokens?.refreshToken) {
+          localStorage.setItem('refreshToken', tokens.refreshToken);
+        }
+        
+        // Set user state
+        setUser(userData);
+        setError(null);
+        
+        // Navigate to chats
+        console.log('🚀 Navigating to /chats');
         navigate('/chats');
-        return { success: true, data: user };
+        
+        return { success: true, data: userData };
+      } else {
+        const errorMsg = response.data.error || 'Login failed';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
+      }
+    } catch (err) {
+      console.error('❌ Login error:', err);
+      
+      const errorMsg = err.response?.data?.error || err.message || 'Login failed. Please try again.';
+      setError(errorMsg);
+      
+      return { success: false, error: errorMsg };
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const register = async (userData) => {
+    setAuthLoading(true);
+    try {
+      setError(null);
+      const response = await api.post('/auth/register', userData);
+      console.log('📝 Register response:', response.data);
+      
+      if (response.data.success) {
+        // Handle verification URL if present
+        const verificationUrl = response.data.verificationUrl;
+        
+        // Store tokens if provided (for auto-login)
+        if (response.data.data?.tokens) {
+          const { tokens } = response.data.data;
+          if (tokens?.accessToken) {
+            localStorage.setItem('token', tokens.accessToken);
+            api.defaults.headers.common['Authorization'] = `Bearer ${tokens.accessToken}`;
+          }
+          if (tokens?.refreshToken) {
+            localStorage.setItem('refreshToken', tokens.refreshToken);
+          }
+        }
+        
+        // Set user if provided
+        if (response.data.data?.user) {
+          setUser(response.data.data.user);
+        }
+        
+        return { 
+          success: true, 
+          data: response.data.data,
+          verificationUrl 
+        };
       } else {
         setError(response.data.error || 'Registration failed');
         return { success: false, error: response.data.error };
@@ -209,12 +173,14 @@ export const AuthProvider = ({ children }) => {
       console.error('❌ Registration error:', errorMsg);
       setError(errorMsg);
       return { success: false, error: errorMsg };
+    } finally {
+      setAuthLoading(false);
     }
   };
 
   const logout = async () => {
     try {
-      await authService.logout();
+      await api.post('/auth/logout');
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
@@ -254,13 +220,13 @@ export const AuthProvider = ({ children }) => {
 
   const refreshToken = async () => {
     try {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (!refreshToken) {
+      const token = localStorage.getItem('refreshToken');
+      if (!token) {
         logout();
         return null;
       }
 
-      const response = await authService.refreshToken(refreshToken);
+      const response = await api.post('/auth/refresh', { refreshToken: token });
       
       if (response.data.success) {
         const { accessToken, refreshToken: newRefreshToken } = response.data.data;
@@ -311,6 +277,7 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     error,
+    authLoading,
     login,
     register,
     logout,

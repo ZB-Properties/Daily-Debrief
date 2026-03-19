@@ -6,7 +6,6 @@ import * as z from 'zod';
 import { FiMail, FiLock, FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/common/Button';
-import api from '../../services/api';
 import toast from 'react-hot-toast';
 import '../../styles/globals.css';
 
@@ -24,7 +23,7 @@ const Login = () => {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
   
-  const { login: authLogin, error: authError } = useAuth(); // Rename to avoid conflict
+  const { login: authLogin, error: authError, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -60,52 +59,47 @@ const Login = () => {
   }, []);
 
   const onSubmit = async (data) => {
+    if (!agreed) {
+      setError('root', {
+        type: 'manual',
+        message: 'Please agree to the terms of use & privacy policy'
+      });
+      return;
+    }
+
     try {
       console.log('🔐 Login attempt for:', data.email);
       
-      const response = await api.post('/auth/login', {
-        email: data.email,
-        password: data.password
-      });
-
-      console.log('✅ Login response:', response.data);
-
-      if (response.data.requires2FA) {
-        navigate('/2fa-login', { state: { userId: response.data.userId } });
+      // Use authLogin from context - it handles the API call, token storage, and navigation
+      const result = await authLogin(data.email, data.password);
+      
+      console.log('✅ Login result:', result);
+      
+      // Check if 2FA or verification is required from the result
+      if (result?.requires2FA) {
+        navigate('/2fa-login', { state: { userId: result.userId } });
         return;
       }
       
-      if (response.data.requiresVerification) {
+      if (result?.requiresVerification) {
         setVerificationRequired(true);
         setVerificationEmail(data.email);
         return;
       }
 
-      // Handle successful login
-      if (response.data.success) {
-        const { user, tokens } = response.data.data;
-        
-        // Store tokens
-        localStorage.setItem('token', tokens.accessToken);
-        localStorage.setItem('refreshToken', tokens.refreshToken);
-        
-        // IMPORTANT: Update auth context with user data
-        if (authLogin) {
-          await authLogin(user); // This updates the auth state
-        }
-        
-        toast.success(`Welcome back, ${user.name}!`);
-        
-        // Small delay to ensure state updates before navigation
-        setTimeout(() => {
-          navigate(from, { replace: true });
-        }, 100);
-      }
-
-    } catch (error) {
-      console.error('❌ Login error:', error.response?.data || error.message);
+      // If there was an error, it will be handled by the catch block
       
-      const errorMsg = error.response?.data?.error || 'Login failed. Please try again.';
+    } catch (error) {
+      console.error('❌ Login error:', error);
+      
+      let errorMsg = 'Login failed. Please try again.';
+      
+      if (error.response?.data?.error) {
+        errorMsg = error.response.data.error;
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      
       toast.error(errorMsg);
       
       if (error.response?.status === 401) {
@@ -125,7 +119,7 @@ const Login = () => {
   const handleResendVerification = async () => {
     setResendLoading(true);
     try {
-      await api.post('/auth/send-verification', { email: verificationEmail });
+      const response = await api.post('/auth/send-verification', { email: verificationEmail });
       setResendSuccess(true);
       toast.success('Verification email sent!');
       setTimeout(() => setResendSuccess(false), 3000);
@@ -333,10 +327,10 @@ const Login = () => {
             {/* Submit button */}
             <button
               type="submit"
-              disabled={isSubmitting || !agreed}
+              disabled={isSubmitting || !agreed || authLoading}
               className="w-full bg-gradient-to-r from-red-500 to-blue-800 hover:from-red-600 hover:to-blue-700 text-white font-semibold py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Logging in...' : 'Login now'}
+              {authLoading ? 'Logging in...' : 'Login now'}
             </button>
 
             {/* Divider */}
