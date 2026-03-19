@@ -53,51 +53,70 @@ const Login = () => {
     reset();
   }, []);
 
-  const onSubmit = async (data) => {
-    if (!agreed) {
-      setError('root', {
-        type: 'manual',
-        message: 'Please agree to the terms of use & privacy policy'
-      });
+useEffect(() => {
+  console.log('🔧 Environment check:');
+  console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
+  console.log('VITE_SOCKET_URL:', import.meta.env.VITE_SOCKET_URL);
+  console.log('MODE:', import.meta.env.MODE);
+}, []);
+
+ const onSubmit = async (data) => {
+  try {
+    console.log('🔐 Login attempt for:', data.email);
+    
+    // IMPORTANT: This must be a POST request to the correct endpoint
+    const response = await api.post('/auth/login', {
+      email: data.email,
+      password: data.password
+    });
+
+    console.log('✅ Login response:', response.data);
+
+    if (response.data.requires2FA) {
+      navigate('/2fa-login', { state: { userId: response.data.userId } });
+      return;
+    }
+    
+    if (response.data.requiresVerification) {
+      setVerificationRequired(true);
+      setVerificationEmail(data.email);
       return;
     }
 
-    try {
-      const response = await api.post('/auth/login', {
-        email: data.email,
-        password: data.password
-      });
-      
-      if (response.data.requires2FA) {
-        // Redirect to 2FA verification page
-        navigate('/2fa-login', { state: { userId: response.data.userId } });
-        return;
-      }
-      
-      if (response.data.requiresVerification) {
-        localStorage.setItem('pendingVerificationEmail', data.email);
-        setVerificationRequired(true);
-        setVerificationEmail(data.email);
-        return;
-      }
-
+    // Handle successful login
+    if (response.data.success) {
       const { user, tokens } = response.data.data;
       
+      // Store tokens
       localStorage.setItem('token', tokens.accessToken);
       localStorage.setItem('refreshToken', tokens.refreshToken);
       
-      // Update auth context
-      await login(data.email, data.password);
+      // Update auth context if you have one
+      // await login(user);
       
-      navigate(from, { replace: true });
-    } catch (err) {
-      const errorMsg = err.response?.data?.error || 'Login failed. Please try again.';
+      toast.success(`Welcome back, ${user.name}!`);
+      navigate('/chats');
+    }
+
+  } catch (error) {
+    console.error('❌ Login error:', error.response?.data || error.message);
+    
+    const errorMsg = error.response?.data?.error || 'Login failed. Please try again.';
+    toast.error(errorMsg);
+    
+    if (error.response?.status === 401) {
+      setError('root', {
+        type: 'manual',
+        message: 'Invalid email or password'
+      });
+    } else {
       setError('root', {
         type: 'manual',
         message: errorMsg
       });
     }
-  };
+  }
+};
 
   const handleResendVerification = async () => {
     setResendLoading(true);

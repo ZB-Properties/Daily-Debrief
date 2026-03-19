@@ -42,7 +42,7 @@ const io = socketIo(server, {
   cors: {
     origin: [
       process.env.FRONTEND_URL || 'http://localhost:7300',
-      'https://dailydebrief.netlify.app' // ADDED YOUR NETLIFY URL
+      'https://dailydebrief.netlify.app'
     ],
     credentials: true,
     methods: ['GET', 'POST']
