@@ -1,12 +1,15 @@
 import axios from 'axios';
 
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+
 const api = axios.create({
-  baseURL: import.meta.env.REACT_APP_API_URL || 'http://localhost:8080/api',
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true, 
-});
+}); 
 
 // Request interceptor to add token
 api.interceptors.request.use(
@@ -32,8 +35,9 @@ api.interceptors.response.use(
       
       try {
         const refreshToken = localStorage.getItem('refreshToken');
+        // Use the same API_URL variable
         const response = await axios.post(
-          `${import.meta.env.REACT_APP_API_URL}/auth/refresh`,
+          `${API_URL}/auth/refresh`,
           { refreshToken }
         );
         
@@ -62,7 +66,6 @@ api.interceptors.response.use(
   }
 );
 
-
 // API helper functions
 const get = (url, params = {}, config = {}) => {
   return api.get(url, { params, ...config });
@@ -84,11 +87,6 @@ const del = (url, config = {}) => {
   return api.delete(url, config);
 };
 
-export default {
-  ...api,
-  get,
-  post,
-  put,
-  patch,
-  delete: del
-};
+// Export both the api instance and helper functions
+export { api, get, post, put, patch, del };
+export default api;

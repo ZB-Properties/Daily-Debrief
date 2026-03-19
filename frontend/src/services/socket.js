@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.REACT_APP_SOCKET_URL|| 'http://localhost:8080';
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:8080';
 
 class SocketService {
   constructor() {
@@ -14,6 +15,8 @@ class SocketService {
       return this.socket;
     }
 
+    console.log('🔌 Connecting to socket at:', SOCKET_URL);
+    
     this.socket = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
@@ -21,7 +24,8 @@ class SocketService {
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      timeout: 20000
+      timeout: 20000,
+      withCredentials: true
     });
 
     this.setupEventListeners();
@@ -33,19 +37,19 @@ class SocketService {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('Socket connected:', this.socket.id);
+      console.log('✅ Socket connected:', this.socket.id);
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
+      console.log('❌ Socket disconnected:', reason);
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
+      console.error('🔴 Socket connection error:', error.message);
     });
 
     this.socket.on('error', (error) => {
-      console.error('Socket error:', error);
+      console.error('🔴 Socket error:', error);
     });
   }
 
@@ -55,13 +59,14 @@ class SocketService {
       this.socket.disconnect();
       this.socket = null;
       this.listeners.clear();
+      console.log('🔌 Socket disconnected');
     }
   }
 
   // Emit event
   emit(event, data) {
     if (!this.socket || !this.socket.connected) {
-      console.warn('Socket not connected');
+      console.warn('⚠️ Socket not connected, cannot emit:', event);
       return false;
     }
 
@@ -81,6 +86,8 @@ class SocketService {
       this.listeners.set(event, []);
     }
     this.listeners.get(event).push(callback);
+    
+    console.log(`👂 Listening for event: ${event}`);
   }
 
   // Remove event listener
@@ -102,6 +109,8 @@ class SocketService {
       this.socket.off(event);
       this.listeners.delete(event);
     }
+    
+    console.log(`👂 Stopped listening for event: ${event}`);
   }
 
   // Remove all listeners
@@ -115,6 +124,7 @@ class SocketService {
     });
     
     this.listeners.clear();
+    console.log('🧹 Removed all listeners');
   }
 
   // Get socket ID
