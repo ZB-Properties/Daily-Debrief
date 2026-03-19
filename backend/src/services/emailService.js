@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
 
 
 const emailService = {
@@ -20,7 +21,11 @@ const emailService = {
         pass: process.env.EMAIL_PASS,
       },
       tls: {
-        rejectUnauthorized: false // Only needed for development
+        rejectUnauthorized: false 
+      },
+        lookup: (hostname, options, callback) => {
+        options.family = 4; // Force IPv4
+        dns.lookup(hostname, options, callback);
       }
     });
 
