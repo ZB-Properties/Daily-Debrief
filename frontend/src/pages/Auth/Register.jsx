@@ -95,7 +95,7 @@ const Register = () => {
           </div>
 
           {/* Success Card */}
-          <div className="bg-foreground dark:bg-red-400 rounded-2xl shadow-xl p-8">
+          <div className="bg-foreground dark:bg-blue-900 rounded-2xl shadow-xl p-8">
             <div className="text-center space-y-6">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full">
                 <FiCheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
@@ -116,7 +116,7 @@ const Register = () => {
               {/* DIRECT VERIFICATION LINK SECTION - NEW */}
               {verificationLink && (
                 <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                  <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-3 flex items-center">
+                  <h4 className="font-medium text-blue-800 dark:text-white mb-3 flex items-center">
                     <FiMail className="w-4 h-4 mr-2" />
                     🔗 Click to Verify Instantly
                   </h4>
@@ -128,7 +128,7 @@ const Register = () => {
                   >
                     Verify Email Now
                   </a>
-                  <p className="text-xs text-blue-700 dark:text-blue-400 break-all">
+                  <p className="text-xs text-blue-700 dark:text-blue-50 break-all">
                     Link: {verificationLink}
                   </p>
                   <p className="text-xs text-gray-500 mt-2">
@@ -139,10 +139,10 @@ const Register = () => {
               )}
               
               <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-left mt-4">
-                <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2">
+                <h4 className="font-medium text-blue-800 dark:text-white mb-2">
                   📨 Next Steps:
                 </h4>
-                <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
+                <ul className="text-sm text-blue-700 dark:text-white space-y-1">
                   <li>1. Click the blue button above to verify instantly</li>
                   <li>2. Or check your email inbox for the verification link</li>
                   <li>3. After verification, login to start chatting</li>
