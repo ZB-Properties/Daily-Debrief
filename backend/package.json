@@ -31,6 +31,7 @@
     "nodemailer": "^8.0.2",
     "qrcode": "^1.5.4",
     "redis": "^5.10.0",
+    "resend": "^4.0.0",
     "socket.io": "4.6.2",
     "socket.io-client": "4.6.2",
     "speakeasy": "^2.0.0",
