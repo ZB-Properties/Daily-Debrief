@@ -106,6 +106,20 @@ const register = asyncHandler(async (req, res) => {
       error: error.message || 'Registration failed'
     });
   }
+
+  // In your register function, right after creating the user
+console.log('📧 Attempting to send verification email to:', user.email);
+console.log('📧 Verification token:', verificationToken);
+console.log('📧 FRONTEND_URL:', process.env.FRONTEND_URL);
+
+const emailResult = await emailService.sendVerificationEmail(user, verificationToken);
+console.log('📧 Email send result:', emailResult);
+
+if (!emailResult.success) {
+  console.error('❌ Email sending failed:', emailResult.error);
+  // Don't block registration, but log the error
+}
+
 });
 
 
