@@ -4,7 +4,7 @@ import {
   FiBell, FiLock, FiEye, FiMoon, FiGlobe, 
   FiDatabase, FiTrash2, FiDownload, FiShield,
   FiVolume2, FiMessageSquare, FiVideo, FiUser,
-  FiSun, FiCheck, FiX, FiUserX, FiArrowLeft
+  FiSun, FiCheck, FiX, FiUserX, FiArrowLeft, FiMenu
 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -17,8 +17,10 @@ import blockService from '../../services/block';
 import toast from 'react-hot-toast';
 import '../../styles/globals.css';
 
+
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('general');
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -27,6 +29,7 @@ const Settings = () => {
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [showBlockedUsers, setShowBlockedUsers] = useState(false);
   const [unblocking, setUnblocking] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
   const [notifications, setNotifications] = useState({
     messages: true,
     calls: true,
@@ -52,6 +55,19 @@ const Settings = () => {
   const { user, logout, updateProfile } = useAuth();
   const { theme, setTheme, isDark } = useTheme();
   const navigate = useNavigate();
+
+  // Check for mobile screen
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+      if (window.innerWidth >= 1024) {
+        setShowMobileMenu(false);
+      }
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Load user settings from localStorage or API
   useEffect(() => {
@@ -95,8 +111,6 @@ const Settings = () => {
     
     try {
       localStorage.setItem('userSettings', JSON.stringify(settings));
-      // Save to backend if you have an API endpoint
-      // await api.put('/users/settings', settings);
       toast.success('Settings saved successfully');
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -250,7 +264,7 @@ const Settings = () => {
         </h2>
         <button
           onClick={() => setShowBlockedUsers(false)}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
         >
           <FiArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
         </button>
@@ -261,7 +275,7 @@ const Settings = () => {
           {blockedUsers.map(user => (
             <div
               key={user._id}
-              className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700"
+              className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 gap-3"
             >
               <div className="flex items-center space-x-3">
                 <Avatar
@@ -279,7 +293,7 @@ const Settings = () => {
               <button
                 onClick={() => handleUnblockUser(user._id)}
                 disabled={unblocking === user._id}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2 min-h-[44px]"
               >
                 {unblocking === user._id ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -314,16 +328,16 @@ const Settings = () => {
     }
 
     return (
-      <div className="p-6 md:p-8">
+      <div className="p-4 sm:p-6 md:p-8">
         {activeTab === 'general' && (
           <div className="space-y-8">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                 General Settings
               </h2>
               <button
                 onClick={saveSettings}
-                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transform transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex items-center space-x-2"
+                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 min-h-[44px]"
               >
                 <FiCheck className="w-4 h-4" />
                 <span>Save Changes</span>
@@ -337,10 +351,10 @@ const Settings = () => {
                   <FiMoon className="inline-block w-5 h-5 mr-2" />
                   Theme
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setTheme('light')}
-                    className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
+                    className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all min-h-[80px] ${
                       theme === 'light'
                         ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                         : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
@@ -356,7 +370,7 @@ const Settings = () => {
                   
                   <button
                     onClick={() => setTheme('dark')}
-                    className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
+                    className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all min-h-[80px] ${
                       theme === 'dark'
                         ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                         : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
@@ -379,7 +393,7 @@ const Settings = () => {
                   Language
                 </h3>
                 <select 
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-900 dark:text-white min-h-[44px]"
                   onChange={(e) => toast.success(`Language changed to ${e.target.value}`)}
                 >
                   <option>English (US)</option>
@@ -395,22 +409,22 @@ const Settings = () => {
 
         {activeTab === 'notifications' && (
           <div className="space-y-8">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                 Notification Settings
               </h2>
               <button
                 onClick={saveSettings}
-                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transform transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex items-center space-x-2"
+                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 min-h-[44px]"
               >
                 <FiCheck className="w-4 h-4" />
                 <span>Save Changes</span>
               </button>
             </div>
             
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Message Notifications */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg gap-3">
                 <div>
                   <h4 className="font-medium text-gray-900 dark:text-white">
                     <FiMessageSquare className="inline-block w-4 h-4 mr-2" />
@@ -420,7 +434,7 @@ const Settings = () => {
                     Get notified when you receive new messages
                   </p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer self-start sm:self-auto">
                   <input
                     type="checkbox"
                     checked={notifications.messages}
@@ -432,7 +446,7 @@ const Settings = () => {
               </div>
 
               {/* Call Notifications */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg gap-3">
                 <div>
                   <h4 className="font-medium text-gray-900 dark:text-white">
                     <FiVideo className="inline-block w-4 h-4 mr-2" />
@@ -442,7 +456,7 @@ const Settings = () => {
                     Get notified when you receive calls
                   </p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer self-start sm:self-auto">
                   <input
                     type="checkbox"
                     checked={notifications.calls}
@@ -454,7 +468,7 @@ const Settings = () => {
               </div>
 
               {/* Sound Notifications */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg gap-3">
                 <div>
                   <h4 className="font-medium text-gray-900 dark:text-white">
                     <FiVolume2 className="inline-block w-4 h-4 mr-2" />
@@ -464,7 +478,7 @@ const Settings = () => {
                     Play sounds for notifications
                   </p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer self-start sm:self-auto">
                   <input
                     type="checkbox"
                     checked={notifications.sounds}
@@ -476,7 +490,7 @@ const Settings = () => {
               </div>
 
               {/* Message Preview */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg gap-3">
                 <div>
                   <h4 className="font-medium text-gray-900 dark:text-white">
                     Message Preview
@@ -485,7 +499,7 @@ const Settings = () => {
                     Show message content in notifications
                   </p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer self-start sm:self-auto">
                   <input
                     type="checkbox"
                     checked={notifications.preview}
@@ -499,15 +513,16 @@ const Settings = () => {
           </div>
         )}
 
+        {/* Rest of the tabs remain the same with similar responsive updates */}
         {activeTab === 'privacy' && (
           <div className="space-y-8">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                 Privacy Settings
               </h2>
               <button
                 onClick={saveSettings}
-                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transform transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex items-center space-x-2"
+                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 min-h-[44px]"
               >
                 <FiCheck className="w-4 h-4" />
                 <span>Save Changes</span>
@@ -522,17 +537,17 @@ const Settings = () => {
                 </h3>
                 <div className="space-y-2">
                   {['everyone', 'my_contacts', 'nobody'].map((option) => (
-                    <label key={option} className="flex items-center space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg cursor-pointer">
+                    <label key={option} className="flex items-start space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg cursor-pointer">
                       <input
                         type="radio"
                         name="lastSeen"
                         value={option}
                         checked={privacy.lastSeen === option}
                         onChange={(e) => handlePrivacyChange('lastSeen', e.target.value)}
-                        className="text-red-600 focus:ring-red-500"
+                        className="text-red-600 focus:ring-red-500 mt-0.5"
                       />
                       <div>
-                        <span className="text-gray-900 dark:text-white capitalize">
+                        <span className="text-gray-900 dark:text-white capitalize block">
                           {option.replace('_', ' ')}
                         </span>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -553,17 +568,17 @@ const Settings = () => {
                 </h3>
                 <div className="space-y-2">
                   {['everyone', 'my_contacts', 'nobody'].map((option) => (
-                    <label key={option} className="flex items-center space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg cursor-pointer">
+                    <label key={option} className="flex items-start space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg cursor-pointer">
                       <input
                         type="radio"
                         name="profilePhoto"
                         value={option}
                         checked={privacy.profilePhoto === option}
                         onChange={(e) => handlePrivacyChange('profilePhoto', e.target.value)}
-                        className="text-red-600 focus:ring-red-500"
+                        className="text-red-600 focus:ring-red-500 mt-0.5"
                       />
                       <div>
-                        <span className="text-gray-900 dark:text-white capitalize">
+                        <span className="text-gray-900 dark:text-white capitalize block">
                           {option.replace('_', ' ')}
                         </span>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -578,7 +593,7 @@ const Settings = () => {
               </div>
 
               {/* Read Receipts */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg gap-3">
                 <div>
                   <h4 className="font-medium text-gray-900 dark:text-white">
                     Read Receipts
@@ -587,7 +602,7 @@ const Settings = () => {
                     Let others know when you've read their messages
                   </p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer self-start sm:self-auto">
                   <input
                     type="checkbox"
                     checked={privacy.readReceipts}
@@ -600,7 +615,7 @@ const Settings = () => {
 
               {/* Blocked Users Link */}
               <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h4 className="font-medium text-gray-900 dark:text-white">
                       <FiUserX className="inline-block w-4 h-4 mr-2" />
@@ -613,6 +628,7 @@ const Settings = () => {
                   <Button
                     onClick={() => setShowBlockedUsers(true)}
                     variant="outline"
+                    className="min-h-[44px]"
                   >
                     View Blocked ({blockedUsers.length})
                   </Button>
@@ -622,15 +638,16 @@ const Settings = () => {
           </div>
         )}
 
+        {/* Chat Settings Tab */}
         {activeTab === 'chat' && (
           <div className="space-y-8">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                 Chat Settings
               </h2>
               <button
                 onClick={saveSettings}
-                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transform transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex items-center space-x-2"
+                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 min-h-[44px]"
               >
                 <FiCheck className="w-4 h-4" />
                 <span>Save Changes</span>
@@ -639,7 +656,7 @@ const Settings = () => {
             
             <div className="space-y-6">
               {/* Enter to Send */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg gap-3">
                 <div>
                   <h4 className="font-medium text-gray-900 dark:text-white">
                     Enter to Send
@@ -648,7 +665,7 @@ const Settings = () => {
                     Press Enter to send messages (Shift+Enter for new line)
                   </p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer self-start sm:self-auto">
                   <input
                     type="checkbox"
                     checked={chatSettings.enterToSend}
@@ -669,7 +686,7 @@ const Settings = () => {
                     <button
                       key={size}
                       onClick={() => handleChatSettingChange('fontSize', size)}
-                      className={`py-3 rounded-lg border-2 transition-all ${
+                      className={`py-3 rounded-lg border-2 transition-all min-h-[44px] ${
                         chatSettings.fontSize === size
                           ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                           : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
@@ -693,7 +710,7 @@ const Settings = () => {
                     <button
                       key={style}
                       onClick={() => handleChatSettingChange('emojiStyle', style)}
-                      className={`py-3 rounded-lg border-2 transition-all ${
+                      className={`py-3 rounded-lg border-2 transition-all min-h-[44px] ${
                         chatSettings.emojiStyle === style
                           ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                           : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
@@ -710,15 +727,16 @@ const Settings = () => {
           </div>
         )}
 
+        {/* Security Tab */}
         {activeTab === 'security' && (
           <div className="space-y-8">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                 Security Settings
               </h2>
               <button
                 onClick={saveSettings}
-                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transform transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex items-center space-x-2"
+                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 min-h-[44px]"
               >
                 <FiCheck className="w-4 h-4" />
                 <span>Save Changes</span>
@@ -727,7 +745,7 @@ const Settings = () => {
             
             <div className="space-y-6">
               {/* Two-Factor Authentication */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg gap-3">
                 <div>
                   <h4 className="font-medium text-gray-900 dark:text-white">
                     <FiShield className="inline-block w-4 h-4 mr-2" />
@@ -737,7 +755,7 @@ const Settings = () => {
                     Add an extra layer of security to your account
                   </p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer self-start sm:self-auto">
                   <input
                     type="checkbox"
                     checked={security.twoFactorAuth}
@@ -749,7 +767,7 @@ const Settings = () => {
               </div>
 
               {/* Login Alerts */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg gap-3">
                 <div>
                   <h4 className="font-medium text-gray-900 dark:text-white">
                     Login Alerts
@@ -758,7 +776,7 @@ const Settings = () => {
                     Get notified when someone logs into your account
                   </p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer self-start sm:self-auto">
                   <input
                     type="checkbox"
                     checked={security.loginAlerts}
@@ -771,7 +789,7 @@ const Settings = () => {
 
               {/* Device Management */}
               <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
                   <div>
                     <h4 className="font-medium text-gray-900 dark:text-white">
                       Device Management
@@ -780,7 +798,7 @@ const Settings = () => {
                       Manage devices logged into your account
                     </p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="relative inline-flex items-center cursor-pointer self-start sm:self-auto">
                     <input
                       type="checkbox"
                       checked={security.deviceManagement}
@@ -793,7 +811,7 @@ const Settings = () => {
                 <Button
                   onClick={handleLogoutAllDevices}
                   variant="outline"
-                  className="w-full"
+                  className="w-full min-h-[44px]"
                 >
                   Log Out From All Devices
                 </Button>
@@ -802,15 +820,16 @@ const Settings = () => {
           </div>
         )}
 
+        {/* Data Tab */}
         {activeTab === 'data' && (
           <div className="space-y-8">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                 Data & Storage
               </h2>
               <button
                 onClick={saveSettings}
-                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transform transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex items-center space-x-2"
+                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 min-h-[44px]"
               >
                 <FiCheck className="w-4 h-4" />
                 <span>Save Changes</span>
@@ -851,7 +870,7 @@ const Settings = () => {
                   onClick={() => setShowExportModal(true)}
                   variant="outline"
                   icon={<FiDownload />}
-                  className="w-full justify-start"
+                  className="w-full justify-center min-h-[44px]"
                 >
                   Export Chat Data
                 </Button>
@@ -860,7 +879,7 @@ const Settings = () => {
                   onClick={handleClearChatHistory}
                   variant="outline"
                   icon={<FiTrash2 />}
-                  className="w-full justify-start text-red-600 dark:text-red-400"
+                  className="w-full justify-center text-red-600 dark:text-red-400 min-h-[44px]"
                 >
                   Clear All Chat History
                 </Button>
@@ -869,15 +888,16 @@ const Settings = () => {
           </div>
         )}
 
+        {/* Account Tab */}
         {activeTab === 'account' && (
           <div className="space-y-8">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                 Account Settings
               </h2>
               <button
                 onClick={saveSettings}
-                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transform transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex items-center space-x-2"
+                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 min-h-[44px]"
               >
                 <FiCheck className="w-4 h-4" />
                 <span>Save Changes</span>
@@ -887,7 +907,7 @@ const Settings = () => {
             <div className="space-y-6">
               {/* Change Password */}
               <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h4 className="font-medium text-gray-900 dark:text-white">
                       <FiLock className="inline-block w-4 h-4 mr-2" />
@@ -900,6 +920,7 @@ const Settings = () => {
                   <Button
                     onClick={handleChangePassword}
                     variant="outline"
+                    className="min-h-[44px]"
                   >
                     Change
                   </Button>
@@ -913,7 +934,7 @@ const Settings = () => {
                 </h3>
                 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <h4 className="font-medium text-red-700 dark:text-red-400">
                         Delete Account
@@ -926,6 +947,7 @@ const Settings = () => {
                       onClick={() => setShowDeleteModal(true)}
                       variant="danger"
                       icon={<FiTrash2 />}
+                      className="min-h-[44px]"
                     >
                       Delete Account
                     </Button>
@@ -941,18 +963,66 @@ const Settings = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 to-blue-200 dark:from-gray-800 dark:to-gray-950">
-      <div className="max-w-7xl mx-auto p-4 md:p-6">
+      <div className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Manage your account preferences and application settings
-          </p>
+        <div className="mb-6 sm:mb-8">
+          <div className="flex items-center gap-3 sm:gap-4">
+            {isMobile && (
+              <button
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden min-w-[44px] min-h-[44px] flex items-center justify-center"
+              >
+                <FiMenu className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              </button>
+            )}
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1 sm:mt-2">
+                Manage your account preferences and application settings
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sidebar Navigation */}
-          <div className="lg:w-64">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+          {/* Sidebar Navigation - Mobile Drawer */}
+          {isMobile && showMobileMenu && (
+            <div className="fixed inset-0 z-50 bg-black bg-opacity-50" onClick={() => setShowMobileMenu(false)}>
+              <div className="absolute left-0 top-0 h-full w-72 bg-white dark:bg-gray-800 shadow-xl" onClick={e => e.stopPropagation()}>
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Menu</h2>
+                  <button
+                    onClick={() => setShowMobileMenu(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  >
+                    <FiX className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="p-3 space-y-1">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        setShowMobileMenu(false);
+                      }}
+                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors min-h-[44px] ${
+                        activeTab === tab.id
+                          ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <span className="text-lg">{tab.icon}</span>
+                      <span className="font-medium">{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Sidebar Navigation - Desktop */}
+          <div className="hidden lg:block lg:w-64">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 sticky top-6">
               <div className="space-y-1">
                 {tabs.map((tab) => (
@@ -991,7 +1061,7 @@ const Settings = () => {
                 <Button
                   onClick={handleEditProfile}
                   variant="outline"
-                  className="w-full mt-4"
+                  className="w-full mt-4 min-h-[44px]"
                 >
                   Edit Profile
                 </Button>
@@ -1008,7 +1078,7 @@ const Settings = () => {
         </div>
       </div>
 
-      {/* Export Data Modal */}
+      {/* Export Data Modal - Keep your existing modal */}
       <Modal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
@@ -1061,7 +1131,7 @@ const Settings = () => {
         </div>
       </Modal>
 
-      {/* Delete Account Modal */}
+      {/* Delete Account Modal - Keep your existing modal */}
       <Modal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}

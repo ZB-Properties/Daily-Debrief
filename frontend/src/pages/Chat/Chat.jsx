@@ -5,21 +5,32 @@ import ChatArea from '../../components/chat/ChatArea';
 import { useSocket } from '../../context/SocketContext';
 import { useAuth } from '../../context/AuthContext';
  
+
 const Chats = () => {
   console.log('💬 Chats page rendering');
 
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const { isConnected } = useSocket();
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Check for mobile screen
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Check if we need to refresh from navigation state
   useEffect(() => {
     if (location.state?.refresh) {
       refreshSidebar();
-      // Clear the state to prevent repeated refreshes
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location]);
@@ -28,15 +39,22 @@ const Chats = () => {
     navigate('/new-chat');
   };
 
-  // Function to refresh sidebar conversations
   const refreshSidebar = useCallback(() => {
     setSidebarRefreshKey(prev => prev + 1);
   }, []);
 
+  // Handle back button on mobile when chat is selected
+  const handleBack = () => {
+    setSelectedConversation(null);
+  };
+
   return (
-    <div className="flex h-full w-full overflow-x-hidden">
-      {/* Chat Sidebar - No extra spacing */}
-      <div className="w-full md:w-1/3 lg:w-1/4 border-r border-gray-200 dark:border-gray-700">
+    <div className="flex h-full w-full overflow-hidden">
+      {/* Chat Sidebar - Hidden on mobile when chat is selected */}
+      <div className={`
+        ${isMobile && selectedConversation ? 'hidden' : 'block w-full'}
+        md:block md:w-1/3 lg:w-1/4 border-r border-gray-200 dark:border-gray-700
+      `}>
         <ChatSidebar 
           onSelectConversation={setSelectedConversation}
           selectedConversation={selectedConversation}
@@ -44,16 +62,19 @@ const Chats = () => {
         />
       </div> 
       
-      {/* Chat Area */}
-      <div className="hidden md:block md:w-2/3 lg:w-3/4">
+      {/* Chat Area - Full screen on mobile when selected */}
+      <div className={`
+        ${isMobile && !selectedConversation ? 'hidden' : 'block w-full'}
+        md:block md:w-2/3 lg:w-3/4
+      `}>
         {selectedConversation ? (
           <ChatArea 
             conversation={selectedConversation}
             currentUser={user}
             onGroupUpdate={refreshSidebar}
+            onBack={isMobile ? handleBack : null}
           />
         ) : (
-          // COMPACT WELCOME SCREEN
           <div className="h-full flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-4">
             <div className="w-20 h-20 bg-gradient-to-r from-red-400 to-blue-800 rounded-2xl flex items-center justify-center mb-3">
               <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -76,18 +97,6 @@ const Chats = () => {
           </div>
         )}
       </div>
-      
-      {/* Mobile view */}
-      {selectedConversation && (
-        <div className="md:hidden fixed inset-0 z-50 bg-white dark:bg-gray-500">
-          <ChatArea 
-            conversation={selectedConversation}
-            currentUser={user}
-            onBack={() => setSelectedConversation(null)}
-            onGroupUpdate={refreshSidebar}
-          />
-        </div>
-      )}
     </div>
   );
 };
