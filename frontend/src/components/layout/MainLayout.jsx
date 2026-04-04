@@ -150,13 +150,14 @@ const MainLayout = () => {
     setDropdownOpen(false);
   }, [location, isMobile]);
 
+  // UPDATED: Added 'profile' to navItems
   const navItems = [
     { id: 'chats', label: 'Chats', icon: <FiMessageSquare />, count: badgeCounts.chats, path: '/chats' },
     { id: 'contacts', label: 'Contacts', icon: <FiUsers />, count: badgeCounts.contacts, path: '/contacts' },
     { id: 'calls', label: 'Calls', icon: <FiVideo />, count: badgeCounts.calls, path: '/calls' },
     { id: 'favorites', label: 'Favorites', icon: <FiStar />, count: badgeCounts.favorites, path: '/favorites' },
     { id: 'archived', label: 'Archived', icon: <FiArchive />, count: badgeCounts.archived, path: '/archived' },
-    { id: 'profile', label: 'Profile', icon: <FiUser />, path: '/profile' },
+    { id: 'profile', label: 'Profile', icon: <FiUser />, path: '/profile' },  // ADDED Profile tab
     { id: 'settings', label: 'Settings', icon: <FiSettings />, path: '/settings' }
   ];
 
@@ -446,34 +447,6 @@ const MainLayout = () => {
           </div>
         )}
       </main>
-
-      {/* Mobile Bottom Navigation - UPDATED to include Profile tab (5 items) */}
-      {isMobile && (
-        <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-[100] h-16">
-          <div className="flex items-center justify-around h-full px-2">
-            {navItems.slice(0, 5).map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  navigate(item.path);
-                  setActiveTab(item.id);
-                }}
-                className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors relative ${
-                  activeTab === item.id
-                    ? 'text-red-600 dark:text-red-400'
-                    : 'text-gray-600 dark:text-gray-400'
-                }`}
-              >
-                <span className="text-xl">{item.icon}</span>
-                <span className="text-xs mt-1">{item.label}</span>
-                {item.count > 0 && (
-                  <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
-                )}
-              </button>
-            ))}
-          </div>
-        </nav>
-      )}
 
       {/* Global Incoming Call Modal */}
       {incomingCall && (
