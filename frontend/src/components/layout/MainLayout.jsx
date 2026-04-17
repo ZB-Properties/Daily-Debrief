@@ -157,7 +157,7 @@ const MainLayout = () => {
     { id: 'calls', label: 'Calls', icon: <FiVideo />, count: badgeCounts.calls, path: '/calls' },
     { id: 'favorites', label: 'Favorites', icon: <FiStar />, count: badgeCounts.favorites, path: '/favorites' },
     { id: 'archived', label: 'Archived', icon: <FiArchive />, count: badgeCounts.archived, path: '/archived' },
-    { id: 'profile', label: 'Profile', icon: <FiUser />, path: '/profile' },  // ADDED Profile tab
+    { id: 'profile', label: 'Profile', icon: <FiUser />, path: '/profile' },
     { id: 'settings', label: 'Settings', icon: <FiSettings />, path: '/settings' }
   ];
 
@@ -343,10 +343,10 @@ const MainLayout = () => {
         </div>
       </aside>
 
-      {/* Main content - NO FOOTER PADDING */}
-      <main className="flex-1 flex flex-col h-full min-w-0">
+      {/* Main content - FIXED for iOS scrolling */}
+      <main className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="border-b bg-gradient-to-br from-red-50 to-blue-200 dark:from-gray-950 dark:to-gray-800 border-gray-600 dark:border-gray-300 px-3 sm:px-6 py-3 sm:py-4">
+        <header className="border-b bg-gradient-to-br from-red-50 to-blue-200 dark:from-gray-950 dark:to-gray-800 border-gray-600 dark:border-gray-300 px-3 sm:px-6 py-3 sm:py-4 flex-shrink-0">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
               <button
@@ -432,14 +432,14 @@ const MainLayout = () => {
           </div>
         </header>
 
-        {/* Page Content - NO FOOTER PADDING */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Page Content - FIXED: This is the scrollable area */}
+        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
           <Outlet />
         </div>
 
         {/* Connection Status */}
         {!isConnected && (
-          <div className="bg-yellow-500 text-white text-sm font-medium px-4 py-2 text-center">
+          <div className="bg-yellow-500 text-white text-sm font-medium px-4 py-2 text-center flex-shrink-0">
             <div className="flex items-center justify-center space-x-2">
               <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
               <span>Connecting to server...</span>
@@ -447,6 +447,34 @@ const MainLayout = () => {
           </div>
         )}
       </main>
+
+      {/* Mobile Bottom Navigation - UPDATED to include Profile tab (5 items) */}
+      {isMobile && (
+        <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-[100] h-16">
+          <div className="flex items-center justify-around h-full px-2">
+            {navItems.slice(0, 5).map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  navigate(item.path);
+                  setActiveTab(item.id);
+                }}
+                className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors relative ${
+                  activeTab === item.id
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                <span className="text-xl">{item.icon}</span>
+                <span className="text-xs mt-1">{item.label}</span>
+                {item.count > 0 && (
+                  <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
+                )}
+              </button>
+            ))}
+          </div>
+        </nav>
+      )}
 
       {/* Global Incoming Call Modal */}
       {incomingCall && (
